@@ -1,0 +1,17 @@
+What It Does
+
+I built a smart password checker that acts like a security expert. It doesn't just say "weak" or "strong" - it explains exactly why your password needs improvement and gives specific tips to fix it.
+How It Works
+
+The tool uses multiple security checks:
+
+Character Analysis - Checks if you're using uppercase, lowercase, numbers, and symbols
+
+Pattern Detection - Spots common weak patterns like "12345" or "qwerty" that hackers love
+
+Randomness Measurement - Calculates how unpredictable your password really is
+
+Crack Time Estimation - Shows how long it would take a computer to break your password
+The Result
+
+You get a clear score out of 10 plus actionable advice like "Add special characters" or "Avoid keyboard patterns." It helps create passwords that are truly secure against both human guessing and computer attacks
