@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <regex>
 #include <map>
-#include <cmath>  // Added for log2 and pow functions
+#include <cmath>
 
 class AdvancedPasswordAnalyzer {
 private:
@@ -16,17 +16,58 @@ private:
     std::vector<std::string> warnings;
     std::map<std::string, int> detailedScores;
 
-    // Common weak passwords database
+    // Expanded common weak passwords database
     std::unordered_set<std::string> commonPasswords = {
-        "password", "123456", "12345678", "1234", "qwerty", "abc123", 
-        "password1", "admin", "welcome", "monkey", "letmein", "dragon",
-        "master", "hello", "freedom", "whatever", "qazwsx", "trustno1"
+        // Top most common passwords
+        "password", "123456", "12345678", "1234", "12345", "123456789",
+        "qwerty", "abc123", "password1", "admin", "welcome", "monkey",
+        "letmein", "dragon", "master", "hello", "freedom", "whatever",
+        "qazwsx", "trustno1", "baseball", "football", "superman",
+        
+        // Common simple patterns
+        "111111", "222222", "333333", "444444", "555555", "666666",
+        "777777", "888888", "999999", "000000", "123123", "112233",
+        
+        // Keyboard walks
+        "1qaz2wsx", "1q2w3e4r", "zaq12wsx", "qwer1234", "asdf1234",
+        "zxcv1234", "!qaz2wsx", "1qaz@wsx",
+        
+        // Season/year based
+        "spring", "summer", "winter", "autumn", "fall2024", "summer2024",
+        "winter2023", "spring2024",
+        
+        // Common names and words
+        "michael", "jordan", "charlie", "andrew", "matthew", "jennifer",
+        "michelle", "amanda", "ashley", "shadow", "sunshine", "princess",
+        "computer", "internet", "access", "coffee", "chocolate",
+        
+        // Simple sequences
+        "abcd", "abcde", "abcdef", "zyxwv", "qwe", "asd", "zxc"
     };
 
-    // Keyboard patterns
+    // Expanded keyboard patterns
     std::vector<std::string> keyboardPatterns = {
-        "qwerty", "asdfgh", "zxcvbn", "123456", "!@#$%^", "qazwsx", 
-        "edcrfv", "tgbnhy", "yhnujm", "1qaz", "2wsx", "3edc", "4rfv"
+        // QWERTY rows
+        "qwerty", "qwertyuiop", "asdfgh", "asdfghjkl", "zxcvbn", "zxcvbnm",
+        
+        // Number sequences
+        "123456", "12345678", "123456789", "987654", "98765432",
+        
+        // Special character sequences
+        "!@#$%", "!@#$%^", "!@#$%^&", "!@#$%^&*",
+        
+        // Common keyboard walks
+        "qazwsx", "edcrfv", "tgbnhy", "yhnujm", "ikm", "olp",
+        "1qaz", "2wsx", "3edc", "4rfv", "5tgb", "6yhn", "7ujm", "8ik", "9ol", "0p",
+        
+        // Diagonal patterns
+        "qsc", "wdv", "efc", "rdx", "tfv", "ygb", "uhn", "ijm", "ok", "pl",
+        
+        // Reverse patterns
+        "poiuyt", "lkjhgf", "mnbvcx", "zaq", "xsw", "cde", "vfr", "bgt", "nhy",
+        
+        // Short repeated patterns
+        "qqqq", "wwww", "eeee", "rrrr", "tttt", "yyyy"
     };
 
 public:
@@ -125,7 +166,7 @@ private:
             score += 2;
             suggestions.push_back("🎯 Excellent character variety!");
         } else if (uniqueness < 0.5) {
-            warnings.push_back("⚠️  Many repeated characters - reduces security");
+            warnings.push_back("⚠  Many repeated characters - reduces security");
         }
         
         detailedScores["Character Variety"] = score;
@@ -142,7 +183,7 @@ private:
         double entropy = 0.0;
         for (const auto& pair : charCount) {
             double probability = static_cast<double>(pair.second) / password.length();
-            entropy -= probability * std::log2(probability);  // Fixed: added std::
+            entropy -= probability * std::log2(probability);
         }
         
         // Estimate character set size
@@ -162,7 +203,7 @@ private:
         if (hasSpecial) charsetSize += 32; // Common special characters
         
         // Theoretical maximum entropy
-        double maxEntropy = password.length() * std::log2(charsetSize);  // Fixed: added std::
+        double maxEntropy = password.length() * std::log2(charsetSize);
         double entropyRatio = entropy / maxEntropy;
         
         int score = static_cast<int>((entropy / 4.0) * 10); // Normalize to 0-10 scale
@@ -171,7 +212,7 @@ private:
         detailedScores["Entropy"] = score;
         
         if (entropy < 2.0) {
-            warnings.push_back("⚠️  Very low entropy - easily guessable");
+            warnings.push_back("⚠  Very low entropy - easily guessable");
         } else if (entropy > 3.5) {
             suggestions.push_back("🎲 Good randomness in password");
         }
@@ -188,7 +229,7 @@ private:
         for (const auto& pattern : keyboardPatterns) {
             if (lowerPwd.find(pattern) != std::string::npos) {
                 penalty += 3;
-                suggestions.push_back("⌨️  Avoid keyboard patterns like '" + pattern + "'");
+                suggestions.push_back("⌨  Avoid keyboard patterns like '" + pattern + "'");
             }
         }
         
@@ -201,8 +242,11 @@ private:
         // Check for common substitutions (l33t speak)
         if (hasLeetSpeak()) {
             penalty += 1;
-            warnings.push_back("⚠️  Simple character substitutions (l33t speak) are predictable");
+            warnings.push_back("⚠  Simple character substitutions (l33t speak) are predictable");
         }
+        
+        // Check for repeated patterns
+        penalty += checkRepeatedPatterns();
         
         int score = std::max(0, 10 - penalty);
         detailedScores["Pattern Safety"] = score;
@@ -244,10 +288,29 @@ private:
         return 0;
     }
     
+    int checkRepeatedPatterns() {
+        // Check for repeated short patterns (like "ababab")
+        for (size_t patternLen = 2; patternLen <= password.length() / 2; patternLen++) {
+            bool isRepeating = true;
+            for (size_t i = patternLen; i < password.length(); i++) {
+                if (password[i] != password[i % patternLen]) {
+                    isRepeating = false;
+                    break;
+                }
+            }
+            if (isRepeating && patternLen < password.length() / 2) {
+                suggestions.push_back("🔁 Avoid repeating patterns in password");
+                return 2;
+            }
+        }
+        return 0;
+    }
+    
     bool hasLeetSpeak() {
         // Common leet speak patterns
         std::vector<std::pair<std::string, std::string>> leetPatterns = {
-            {"a", "4"}, {"e", "3"}, {"i", "1"}, {"o", "0"}, {"s", "5"}, {"t", "7"}
+            {"a", "4"}, {"e", "3"}, {"i", "1"}, {"o", "0"}, {"s", "5"}, {"t", "7"},
+            {"l", "1"}, {"z", "2"}, {"g", "9"}, {"b", "8"}, {"q", "9"}
         };
         
         std::string lowerPwd = password;
@@ -285,6 +348,14 @@ private:
             return 2;
         }
         
+        // Check for simple number suffixes
+        if (std::regex_search(password, std::regex(R"([a-zA-Z]+\d{1,4}$)"))) {
+            if (password.length() < 10) {
+                warnings.push_back("🔢 Simple number suffixes are predictable");
+                return 1;
+            }
+        }
+        
         return 10;
     }
     
@@ -303,6 +374,13 @@ private:
         // Check for common username patterns
         if (password.length() <= 3) {
             penalty += 2;
+        }
+        
+        // Check for only letters or only numbers
+        if (std::all_of(password.begin(), password.end(), ::isalpha) ||
+            std::all_of(password.begin(), password.end(), ::isdigit)) {
+            penalty += 2;
+            suggestions.push_back("🔀 Combine letters, numbers, and special characters");
         }
         
         return std::max(0, 10 - penalty);
@@ -328,7 +406,7 @@ private:
         } else if (strengthScore >= 7) {
             std::cout << "Status: 👍 STRONG - Good security level" << std::endl;
         } else if (strengthScore >= 5) {
-            std::cout << "Status: ⚠️  MODERATE - Could be stronger" << std::endl;
+            std::cout << "Status: ⚠  MODERATE - Could be stronger" << std::endl;
         } else if (strengthScore >= 3) {
             std::cout << "Status: 🔴 WEAK - Easy to compromise" << std::endl;
         } else {
@@ -347,7 +425,7 @@ private:
         }
         
         if (!warnings.empty()) {
-            std::cout << "\n⚠️  SECURITY WARNINGS:" << std::endl;
+            std::cout << "\n⚠  SECURITY WARNINGS:" << std::endl;
             for (const auto& warning : warnings) {
                 std::cout << "  • " << warning << std::endl;
             }
@@ -378,7 +456,7 @@ private:
         if (hasDigit) charsetSize += 10;
         if (hasSpecial) charsetSize += 32;
         
-        combinations = std::pow(charsetSize, password.length());  // Fixed: added std::
+        combinations = std::pow(charsetSize, password.length());
         
         double guessesPerSecond = 1e9; // 1 billion guesses/sec (modern cracking)
         double seconds = combinations / guessesPerSecond;
