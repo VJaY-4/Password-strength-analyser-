@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detailed Password Analysis</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: white;
+            color: black;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px 0;
+            border-bottom: 2px solid #000;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .back-btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #000;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            border: 2px solid #000;
+        }
+
+        .back-btn:hover {
+            background-color: #333;
+        }
+
+        .password-display {
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 1.3rem;
+            font-weight: bold;
+            word-break: break-all;
+        }
+
+        .analysis-section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            padding-bottom: 5px;
+            border-bottom: 2px solid #000;
+        }
+
+        .score-breakdown {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .score-item {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+
+        .score-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .score-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .character-types {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .type-item {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            text-align: center;
+            background-color: white;
+        }
+
+        .type-present {
+            border-color: #00a000;
+            background-color: #f0fff0;
+        }
+
+        .type-missing {
+            border-color: #ff0000;
+            background-color: #fff0f0;
+        }
+
+        .suggestions, .warnings {
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .suggestions {
+            border: 1px solid #ffa500;
+            background-color: #fffaf0;
+        }
+
+        .warnings {
+            border: 1px solid #ff0000;
+            background-color: #fff0f0;
+        }
+
+        .suggestions h3, .warnings h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+
+        li {
+            margin-bottom: 10px;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        li:before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            color: #666;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #000;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .final-score {
+            text-align: center;
+            margin: 30px 0;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+
+        .final-score-number {
+            font-size: 3rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .final-score-status {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .score-excellent { color: #00a000; }
+        .score-strong { color: #008000; }
+        .score-moderate { color: #ffa500; }
+        .score-weak { color: #ff0000; }
+        .score-very-weak { color: #800000; }
+
+        .timestamp {
+            text-align: center;
+            color: #666;
+            margin-bottom: 20px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 Detailed Password Analysis</h1>
+        </header>
+
+        <a href="history.html" class="back-btn">← Back to History</a>
+
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Loading detailed analysis...</p>
+        </div>
+
+        <div id="analysisContent" style="display: none;">
+            <div class="timestamp" id="timestampDisplay"></div>
+
+            <div class="password-display" id="passwordDisplay"></div>
+
+            <div class="final-score">
+                <div class="final-score-number" id="finalScore">0/10</div>
+                <div class="final-score-status" id="finalStatus">VERY WEAK</div>
+            </div>
+
+            <div class="analysis-section">
+                <h2 class="section-title">📈 Scoring Breakdown</h2>
+                <div class="score-breakdown" id="scoreBreakdown">
+                    <!-- Will be filled by JavaScript -->
+                </div>
+            </div>
+
+            <div class="analysis-section">
+                <h2 class="section-title">🔤 Character Analysis</h2>
+                <div class="character-types" id="characterTypes">
+                    <!-- Will be filled by JavaScript -->
+                </div>
+            </div>
+
+            <div class="analysis-section">
+                <h2 class="section-title">⏰ Security Metrics</h2>
+                <div class="score-breakdown">
+                    <div class="score-item">
+                        <div class="score-value" id="crackTimeValue">Instantly</div>
+                        <div class="score-label">Estimated Crack Time</div>
+                    </div>
+                    <div class="score-item">
+                        <div class="score-value" id="passwordLength">0</div>
+                        <div class="score-label">Characters</div>
+                    </div>
+                    <div class="score-item">
+                        <div class="score-value" id="characterVariety">0/4</div>
+                        <div class="score-label">Character Types</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="suggestions" id="suggestionsBox">
+                <h3>🔧 Security Improvements</h3>
+                <ul id="suggestionsList"></ul>
+            </div>
+
+            <div class="warnings" id="warningsBox">
+                <h3>⚠️ Security Warnings</h3>
+                <ul id="warningsList"></ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Get analysis ID from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const analysisId = urlParams.get('id');
+
+        // Load analysis when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            if (analysisId) {
+                loadAnalysis(analysisId);
+            } else {
+                document.getElementById('loading').innerHTML = 
+                    '<p>Error: No analysis ID provided.</p>';
+            }
+        });
+
+        function loadAnalysis(analysisId) {
+            fetch(`http://localhost:5000/api/analysis/${analysisId}`)
+                .then(response => response.json())
+                .then(analysisData => {
+                    displayAnalysis(analysisData);
+                })
+                .catch(error => {
+                    console.error('Error loading analysis:', error);
+                    document.getElementById('loading').innerHTML = 
+                        '<p>Error loading analysis. Make sure the backend is running.</p>';
+                });
+        }
+
+        function displayAnalysis(analysisData) {
+            // Hide loading, show content
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('analysisContent').style.display = 'block';
+
+            // Display basic info
+            document.getElementById('passwordDisplay').textContent = analysisData.password;
+            
+            const date = new Date(analysisData.timestamp);
+            document.getElementById('timestampDisplay').textContent = 
+                'Analyzed on: ' + date.toLocaleDateString() + ' at ' + date.toLocaleTimeString();
+
+            const analysis = analysisData.analysis;
+
+            // Display final score
+            document.getElementById('finalScore').textContent = analysis.score + '/10';
+            document.getElementById('finalStatus').textContent = analysis.status;
+            
+            // Set score color
+            const statusElement = document.getElementById('finalStatus');
+            statusElement.className = 'final-score-status';
+            if (analysis.score >= 9) statusElement.classList.add('score-excellent');
+            else if (analysis.score >= 7) statusElement.classList.add('score-strong');
+            else if (analysis.score >= 5) statusElement.classList.add('score-moderate');
+            else if (analysis.score >= 3) statusElement.classList.add('score-weak');
+            else statusElement.classList.add('score-very-weak');
+
+            // Display score breakdown
+            const scoreBreakdown = document.getElementById('scoreBreakdown');
+            scoreBreakdown.innerHTML = `
+                <div class="score-item">
+                    <div class="score-value">${analysis.detailedScores.length}/10</div>
+                    <div class="score-label">Length Score</div>
+                </div>
+                <div class="score-item">
+                    <div class="score-value">${analysis.detailedScores.variety}/10</div>
+                    <div class="score-label">Variety Score</div>
+                </div>
+                <div class="score-item">
+                    <div class="score-value">${analysis.detailedScores.patterns}/10</div>
+                    <div class="score-label">Pattern Safety</div>
+                </div>
+                <div class="score-item">
+                    <div class="score-value">${analysis.detailedScores.entropy}/10</div>
+                    <div class="score-label">Randomness</div>
+                </div>
+            `;
+
+            // Display character types
+            const characterTypes = document.getElementById('characterTypes');
+            characterTypes.innerHTML = `
+                <div class="type-item ${analysis.hasUpper ? 'type-present' : 'type-missing'}">
+                    UPPERCASE<br>${analysis.hasUpper ? '✓ Present' : '✗ Missing'}
+                </div>
+                <div class="type-item ${analysis.hasLower ? 'type-present' : 'type-missing'}">
+                    lowercase<br>${analysis.hasLower ? '✓ Present' : '✗ Missing'}
+                </div>
+                <div class="type-item ${analysis.hasDigit ? 'type-present' : 'type-missing'}">
+                    Numbers<br>${analysis.hasDigit ? '✓ Present' : '✗ Missing'}
+                </div>
+                <div class="type-item ${analysis.hasSpecial ? 'type-present' : 'type-missing'}">
+                    Symbols<br>${analysis.hasSpecial ? '✓ Present' : '✗ Missing'}
+                </div>
+            `;
+
+            // Display security metrics
+            document.getElementById('crackTimeValue').textContent = analysis.crackTime;
+            document.getElementById('passwordLength').textContent = analysis.length;
+            document.getElementById('characterVariety').textContent = 
+                [analysis.hasUpper, analysis.hasLower, analysis.hasDigit, analysis.hasSpecial]
+                .filter(Boolean).length + '/4';
+
+            // Display suggestions
+            const suggestionsList = document.getElementById('suggestionsList');
+            suggestionsList.innerHTML = '';
+            analysis.suggestions.forEach(suggestion => {
+                const li = document.createElement('li');
+                li.textContent = suggestion;
+                suggestionsList.appendChild(li);
+            });
+
+            // Display warnings
+            const warningsList = document.getElementById('warningsList');
+            warningsList.innerHTML = '';
+            analysis.warnings.forEach(warning => {
+                const li = document.createElement('li');
+                li.textContent = warning;
+                warningsList.appendChild(li);
+            });
+
+            // Show/hide boxes based on content
+            document.getElementById('suggestionsBox').style.display = 
+                analysis.suggestions.length > 0 ? 'block' : 'none';
+            document.getElementById('warningsBox').style.display = 
+                analysis.warnings.length > 0 ? 'block' : 'none';
+        }
+    </script>
+</body>
+</html>

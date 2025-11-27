@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Password History</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: white;
+            color: black;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px 0;
+            border-bottom: 2px solid #000;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .back-btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #000;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            border: 2px solid #000;
+        }
+
+        .back-btn:hover {
+            background-color: #333;
+        }
+
+        .history-list {
+            margin-top: 20px;
+        }
+
+        .history-item {
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .history-item:hover {
+            border-color: #000;
+            background-color: #f0f0f0;
+        }
+
+        .password-display {
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            word-break: break-all;
+        }
+
+        .timestamp {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+        }
+
+        .score-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            background-color: #000;
+            color: white;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-right: 10px;
+        }
+
+        .view-details-btn {
+            padding: 8px 16px;
+            background-color: white;
+            color: #000;
+            border: 2px solid #000;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+
+        .view-details-btn:hover {
+            background-color: #000;
+            color: white;
+        }
+
+        .no-history {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #000;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .clear-history-btn {
+            padding: 10px 20px;
+            background-color: #ff4444;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 20px;
+            float: right;
+        }
+
+        .clear-history-btn:hover {
+            background-color: #cc0000;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📋 Password Analysis History</h1>
+        </header>
+
+        <a href="home.html" class="back-btn">← Back to Home</a>
+
+        <button class="clear-history-btn" onclick="clearHistory()">Clear History</button>
+
+        <div class="history-list" id="historyList">
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>Loading history...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Load history when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadHistory();
+        });
+
+        function loadHistory() {
+            fetch('http://localhost:5000/api/history')
+                .then(response => response.json())
+                .then(history => {
+                    displayHistory(history);
+                })
+                .catch(error => {
+                    console.error('Error loading history:', error);
+                    document.getElementById('historyList').innerHTML = 
+                        '<div class="no-history">Error loading history. Make sure the backend is running.</div>';
+                });
+        }
+
+        function displayHistory(history) {
+            const historyList = document.getElementById('historyList');
+            
+            if (history.length === 0) {
+                historyList.innerHTML = '<div class="no-history">No password history yet. Go test some passwords!</div>';
+                return;
+            }
+
+            let html = '';
+            history.forEach(item => {
+                const date = new Date(item.timestamp);
+                const formattedDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+                
+                html += `
+                    <div class="history-item">
+                        <div class="password-display">${item.password}</div>
+                        <div class="timestamp">Tested on: ${formattedDate}</div>
+                        <div>
+                            <span class="score-badge">Score: ${item.analysis.score}/10</span>
+                            <span class="score-badge">${item.analysis.status}</span>
+                            <button class="view-details-btn" onclick="viewDetails('${item._id}')">
+                                View Detailed Analysis
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            historyList.innerHTML = html;
+        }
+
+        function viewDetails(analysisId) {
+            // Navigate to detailed analysis page
+            window.location.href = `analysis.html?id=${analysisId}`;
+        }
+
+        function clearHistory() {
+            if (confirm('Are you sure you want to clear all history? This cannot be undone.')) {
+                fetch('http://localhost:5000/api/history', {
+                    method: 'DELETE'
+                })
+                .then(response => response.json())
+                .then(result => {
+                    alert('History cleared successfully!');
+                    loadHistory(); // Reload empty history
+                })
+                .catch(error => {
+                    alert('Error clearing history: ' + error);
+                });
+            }
+        }
+    </script>
+</body>
+</html>

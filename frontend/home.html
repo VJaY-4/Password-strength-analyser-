@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Password Strength Analyzer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: white;
+            color: black;
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            flex: 1;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 20px 0;
+            border-bottom: 2px solid #000;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: #333;
+            margin-bottom: 30px;
+        }
+
+        .input-section {
+            background-color: #f9f9f9;
+            padding: 30px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            margin-bottom: 30px;
+        }
+
+        .password-input {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.1rem;
+            border: 2px solid #000;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            background-color: white;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+        }
+
+        button {
+            padding: 12px 30px;
+            font-size: 1rem;
+            border: 2px solid #000;
+            border-radius: 4px;
+            cursor: pointer;
+            background-color: white;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #000;
+            color: white;
+        }
+
+        #analyzeBtn {
+            background-color: #000;
+            color: white;
+        }
+
+        #analyzeBtn:hover {
+            background-color: #333;
+        }
+
+        .results-section {
+            display: none;
+            background-color: #f9f9f9;
+            padding: 30px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            margin-bottom: 30px;
+        }
+
+        .results-section.show {
+            display: block;
+        }
+
+        .score-display {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .score-number {
+            font-size: 3rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .score-status {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .score-excellent { color: #00a000; }
+        .score-strong { color: #008000; }
+        .score-moderate { color: #ffa500; }
+        .score-weak { color: #ff0000; }
+        .score-very-weak { color: #800000; }
+
+        .details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .detail-item {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: white;
+        }
+
+        .suggestions, .warnings {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+        }
+
+        .suggestions {
+            border: 1px solid #ffa500;
+            background-color: #fffaf0;
+        }
+
+        .warnings {
+            border: 1px solid #ff0000;
+            background-color: #fff0f0;
+        }
+
+        .suggestions h3, .warnings h3 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+
+        li {
+            margin-bottom: 8px;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        li:before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            color: #666;
+        }
+
+        .history-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            background-color: #000;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .history-btn:hover {
+            background-color: #333;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #000;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔐 Password Strength Analyzer</h1>
+            <p class="subtitle">Test your password security using advanced analysis algorithms</p>
+        </header>
+
+        <section class="input-section">
+            <h2>Test Your Password</h2>
+            <p>Enter your password below to analyze its strength and security.</p>
+            
+            <input type="text" id="passwordInput" class="password-input" placeholder="Type your password here">
+            
+            <div class="button-group">
+                <button id="analyzeBtn" onclick="analyzePassword()">Analyze</button>
+                <button id="clearBtn" onclick="clearField()">Clear Field</button>
+            </div>
+        </section>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Analyzing password security...</p>
+        </div>
+
+        <section class="results-section" id="resultsSection">
+            <div class="score-display">
+                <div class="score-number" id="scoreNumber">0/10</div>
+                <div class="score-status" id="scoreStatus">VERY WEAK</div>
+            </div>
+
+            <div class="details-grid">
+                <div class="detail-item">
+                    <strong>Length:</strong> <span id="lengthValue">0</span> characters
+                </div>
+                <div class="detail-item">
+                    <strong>Character Types:</strong> <span id="varietyValue">0/4</span>
+                </div>
+                <div class="detail-item">
+                    <strong>Pattern Safety:</strong> <span id="patternValue">0/10</span>
+                </div>
+                <div class="detail-item">
+                    <strong>Crack Time:</strong> <span id="crackTimeValue">Instantly</span>
+                </div>
+            </div>
+
+            <div class="suggestions" id="suggestionsBox">
+                <h3>🔧 Suggestions for Improvement</h3>
+                <ul id="suggestionsList"></ul>
+            </div>
+
+            <div class="warnings" id="warningsBox">
+                <h3>⚠️ Security Warnings</h3>
+                <ul id="warningsList"></ul>
+            </div>
+        </section>
+    </div>
+
+    <a href="history.html" class="history-btn">History</a>
+
+    <script>
+        function analyzePassword() {
+            const password = document.getElementById('passwordInput').value.trim();
+            
+            if (!password) {
+                alert('Please enter a password to analyze.');
+                return;
+            }
+
+            // Show loading
+            document.getElementById('loading').classList.add('show');
+            document.getElementById('resultsSection').classList.remove('show');
+
+            // Send to backend
+            fetch('http://localhost:5000/api/analyze', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ password: password })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Hide loading
+                document.getElementById('loading').classList.remove('show');
+                
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                    return;
+                }
+
+                // Display results
+                displayResults(data.analysis);
+            })
+            .catch(error => {
+                document.getElementById('loading').classList.remove('show');
+                alert('Error connecting to server. Make sure the backend is running.');
+                console.error('Error:', error);
+            });
+        }
+
+        function displayResults(analysis) {
+            // Update score
+            document.getElementById('scoreNumber').textContent = analysis.score + '/10';
+            document.getElementById('scoreStatus').textContent = analysis.status;
+            
+            // Set score color
+            const scoreElement = document.getElementById('scoreStatus');
+            scoreElement.className = 'score-status';
+            if (analysis.score >= 9) scoreElement.classList.add('score-excellent');
+            else if (analysis.score >= 7) scoreElement.classList.add('score-strong');
+            else if (analysis.score >= 5) scoreElement.classList.add('score-moderate');
+            else if (analysis.score >= 3) scoreElement.classList.add('score-weak');
+            else scoreElement.classList.add('score-very-weak');
+
+            // Update details
+            document.getElementById('lengthValue').textContent = analysis.length;
+            document.getElementById('varietyValue').textContent = 
+                [analysis.hasUpper, analysis.hasLower, analysis.hasDigit, analysis.hasSpecial]
+                .filter(Boolean).length + '/4';
+            document.getElementById('patternValue').textContent = analysis.detailedScores.patterns + '/10';
+            document.getElementById('crackTimeValue').textContent = analysis.crackTime;
+
+            // Update suggestions
+            const suggestionsList = document.getElementById('suggestionsList');
+            suggestionsList.innerHTML = '';
+            analysis.suggestions.forEach(suggestion => {
+                const li = document.createElement('li');
+                li.textContent = suggestion;
+                suggestionsList.appendChild(li);
+            });
+
+            // Update warnings
+            const warningsList = document.getElementById('warningsList');
+            warningsList.innerHTML = '';
+            analysis.warnings.forEach(warning => {
+                const li = document.createElement('li');
+                li.textContent = warning;
+                warningsList.appendChild(li);
+            });
+
+            // Show/hide boxes based on content
+            document.getElementById('suggestionsBox').style.display = 
+                analysis.suggestions.length > 0 ? 'block' : 'none';
+            document.getElementById('warningsBox').style.display = 
+                analysis.warnings.length > 0 ? 'block' : 'none';
+
+            // Show results section
+            document.getElementById('resultsSection').classList.add('show');
+        }
+
+        function clearField() {
+            document.getElementById('passwordInput').value = '';
+            document.getElementById('resultsSection').classList.remove('show');
+        }
+
+        // Allow pressing Enter to analyze
+        document.getElementById('passwordInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                analyzePassword();
+            }
+        });
+    </script>
+</body>
+</html>
